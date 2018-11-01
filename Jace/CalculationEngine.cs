@@ -56,7 +56,7 @@ namespace Jace
         /// </param>
         /// <param name="executionMode">The execution mode that must be used for formula execution.</param>
         public CalculationEngine(CultureInfo cultureInfo, ExecutionMode executionMode)
-            : this(cultureInfo, executionMode, true, true) 
+            : this(cultureInfo, executionMode, true, true)
         {
         }
 
@@ -69,7 +69,8 @@ namespace Jace
         /// <param name="executionMode">The execution mode that must be used for formula execution.</param>
         /// <param name="cacheEnabled">Enable or disable caching of mathematical formulas.</param>
         /// <param name="optimizerEnabled">Enable or disable optimizing of formulas.</param>
-        public CalculationEngine(CultureInfo cultureInfo, ExecutionMode executionMode, bool cacheEnabled, bool optimizerEnabled)
+        public CalculationEngine(CultureInfo cultureInfo, ExecutionMode executionMode, bool cacheEnabled,
+            bool optimizerEnabled)
             : this(cultureInfo, executionMode, cacheEnabled, optimizerEnabled, true, true)
         {
         }
@@ -85,7 +86,7 @@ namespace Jace
         /// <param name="optimizerEnabled">Enable or disable optimizing of formulas.</param>
         /// <param name="defaultFunctions">Enable or disable the default functions.</param>
         /// <param name="defaultConstants">Enable or disable the default constants.</param>
-        public CalculationEngine(CultureInfo cultureInfo, ExecutionMode executionMode, bool cacheEnabled, 
+        public CalculationEngine(CultureInfo cultureInfo, ExecutionMode executionMode, bool cacheEnabled,
             bool optimizerEnabled, bool defaultFunctions, bool defaultConstants)
         {
             this.executionFormulaCache = new MemoryCache<string, Func<IDictionary<string, double>, double>>();
@@ -100,17 +101,17 @@ namespace Jace
             else if (executionMode == ExecutionMode.Compiled)
                 executor = new DynamicCompiler();
             else
-                throw new ArgumentException(string.Format("Unsupported execution mode \"{0}\".", executionMode), 
+                throw new ArgumentException(string.Format("Unsupported execution mode \"{0}\".", executionMode),
                     "executionMode");
 
             optimizer = new Optimizer(new Interpreter()); // We run the optimizer with the interpreter 
 
             // Register the default constants of Jace.NET into the constant registry
-            if(defaultConstants)
+            if (defaultConstants)
                 RegisterDefaultConstants();
 
             // Register the default functions of Jace.NET into the function registry
-            if(defaultFunctions)
+            if (defaultFunctions)
                 RegisterDefaultFunctions();
         }
 
@@ -118,28 +119,31 @@ namespace Jace
 
         internal IConstantRegistry ConstantRegistry { get; private set; }
 
-        public IEnumerable<FunctionInfo> Functions { get { return FunctionRegistry; } }
+        public IEnumerable<FunctionInfo> Functions
+        {
+            get { return FunctionRegistry; }
+        }
 
-        public IEnumerable<ConstantInfo> Constants { get { return ConstantRegistry; } }
+        public IEnumerable<ConstantInfo> Constants
+        {
+            get { return ConstantRegistry; }
+        }
 
         public double Calculate(string formulaText)
         {
             return Calculate(formulaText, new Dictionary<string, double>());
         }
 
-        public double Calculate(string formulaText, IDictionary<string, double> variables)
+        /// <summary>
+        /// Calculates the given formulas without verifications. This is faster, but leaves the responsibility to sanitize the formulas and variable names to the caller.
+        /// </summary>
+        /// <param name="formulaText">The formula which should be calculated. Must be lowercase.</param>
+        /// <param name="variables">The variable dictionary. Variable names must be lowercase and must not collide with the constants registered in this Calculation Engine.</param>
+        /// <returns></returns>
+        public double CalculateUnsafe(string formulaText, IDictionary<string, double> variables)
         {
-            if (string.IsNullOrEmpty(formulaText))
-                throw new ArgumentNullException("formulaText");
-
-            if (variables == null)
-                throw new ArgumentNullException("variables");
-
-            
-            variables = EngineUtil.ConvertVariableNamesToLowerCase(variables);
-            VerifyVariableNames(variables);
-
             // Add the reserved variables to the dictionary
+            variables = new Dictionary<string, double>(variables);
             foreach (ConstantInfo constant in ConstantRegistry)
                 variables.Add(constant.ConstantName, constant.Value);
 
@@ -153,6 +157,31 @@ namespace Jace
                 function = BuildFormula(formulaText, operation);
                 return function(variables);
             }
+        }
+
+        public void VerifyFormulas(string formulaText, IDictionary<string, double> variables)
+        {
+            if (string.IsNullOrEmpty(formulaText))
+                throw new ArgumentNullException("formulaText");
+
+            if (variables == null)
+                throw new ArgumentNullException("variables");
+
+            VerifyVariableNames(variables);
+        }
+
+        public double Calculate(string formulaText, IDictionary<string, double> variables)
+        {
+            if (string.IsNullOrEmpty(formulaText))
+                throw new ArgumentNullException("formulaText");
+
+            if (variables == null)
+                throw new ArgumentNullException("variables");
+
+
+            variables = EngineUtil.ConvertVariableNamesToLowerCase(variables);
+            VerifyVariableNames(variables);
+            return CalculateUnsafe(formulaText, variables);
         }
 
         public FormulaBuilder Formula(string formulaText)
@@ -201,7 +230,7 @@ namespace Jace
         /// <param name="function">The implemenation of the function.</param>
         public void AddFunction(string functionName, Func<double, double> function)
         {
-            FunctionRegistry.RegisterFunction(functionName, function); 
+            FunctionRegistry.RegisterFunction(functionName, function);
         }
 
         /// <summary>
@@ -249,57 +278,74 @@ namespace Jace
         /// </summary>
         /// <param name="functionName">The name of the function. This name can be used in mathematical formulas.</param>
         /// <param name="function">The implemenation of the function.</param>
-        public void AddFunction(string functionName, Func<double, double, double, double, double, double, double> function)
+        public void AddFunction(string functionName,
+            Func<double, double, double, double, double, double, double> function)
         {
             FunctionRegistry.RegisterFunction(functionName, function);
         }
 
-        public void AddFunction(string functionName, Func<double, double, double, double, double, double, double, double> function)
+        public void AddFunction(string functionName,
+            Func<double, double, double, double, double, double, double, double> function)
         {
             FunctionRegistry.RegisterFunction(functionName, function);
         }
 
-        public void AddFunction(string functionName, Func<double, double, double, double, double, double, double, double, double> function)
+        public void AddFunction(string functionName,
+            Func<double, double, double, double, double, double, double, double, double> function)
         {
             FunctionRegistry.RegisterFunction(functionName, function);
         }
 
-        public void AddFunction(string functionName, Func<double, double, double, double, double, double, double, double, double, double> function)
+        public void AddFunction(string functionName,
+            Func<double, double, double, double, double, double, double, double, double, double> function)
         {
             FunctionRegistry.RegisterFunction(functionName, function);
         }
 
-        public void AddFunction(string functionName, Func<double, double, double, double, double, double, double, double, double, double, double> function)
+        public void AddFunction(string functionName,
+            Func<double, double, double, double, double, double, double, double, double, double, double> function)
         {
             FunctionRegistry.RegisterFunction(functionName, function);
         }
 
-        public void AddFunction(string functionName, Func<double, double, double, double, double, double, double, double, double, double, double, double> function)
+        public void AddFunction(string functionName,
+            Func<double, double, double, double, double, double, double, double, double, double, double, double>
+                function)
         {
             FunctionRegistry.RegisterFunction(functionName, function);
         }
 
-        public void AddFunction(string functionName, Func<double, double, double, double, double, double, double, double, double, double, double, double, double> function)
+        public void AddFunction(string functionName,
+            Func<double, double, double, double, double, double, double, double, double, double, double, double, double>
+                function)
         {
             FunctionRegistry.RegisterFunction(functionName, function);
         }
 
-        public void AddFunction(string functionName, Func<double, double, double, double, double, double, double, double, double, double, double, double, double, double> function)
+        public void AddFunction(string functionName,
+            Func<double, double, double, double, double, double, double, double, double, double, double, double, double,
+                double> function)
         {
             FunctionRegistry.RegisterFunction(functionName, function);
         }
 
-        public void AddFunction(string functionName, Func<double, double, double, double, double, double, double, double, double, double, double, double, double, double, double> function)
+        public void AddFunction(string functionName,
+            Func<double, double, double, double, double, double, double, double, double, double, double, double, double,
+                double, double> function)
         {
             FunctionRegistry.RegisterFunction(functionName, function);
         }
 
-        public void AddFunction(string functionName, Func<double, double, double, double, double, double, double, double, double, double, double, double, double, double, double, double> function)
+        public void AddFunction(string functionName,
+            Func<double, double, double, double, double, double, double, double, double, double, double, double, double,
+                double, double, double> function)
         {
             FunctionRegistry.RegisterFunction(functionName, function);
         }
 
-        public void AddFunction(string functionName, Func<double, double, double, double, double, double, double, double, double, double, double, double, double, double, double, double, double> function)
+        public void AddFunction(string functionName,
+            Func<double, double, double, double, double, double, double, double, double, double, double, double, double,
+                double, double, double, double> function)
         {
             FunctionRegistry.RegisterFunction(functionName, function);
         }
@@ -321,30 +367,34 @@ namespace Jace
 
         private void RegisterDefaultFunctions()
         {
-            FunctionRegistry.RegisterFunction("sin", (Func<double, double>)((a) => Math.Sin(a)), false);
-            FunctionRegistry.RegisterFunction("cos", (Func<double, double>)((a) => Math.Cos(a)), false);
-            FunctionRegistry.RegisterFunction("csc", (Func<double, double>)((a) => MathUtil.Csc(a)), false);
-            FunctionRegistry.RegisterFunction("sec", (Func<double, double>)((a) => MathUtil.Sec(a)), false);
-            FunctionRegistry.RegisterFunction("asin", (Func<double, double>)((a) => Math.Asin(a)), false);
-            FunctionRegistry.RegisterFunction("acos", (Func<double, double>)((a) => Math.Acos(a)), false);
-            FunctionRegistry.RegisterFunction("tan", (Func<double, double>)((a) => Math.Tan(a)), false);
-            FunctionRegistry.RegisterFunction("cot", (Func<double, double>)((a) => MathUtil.Cot(a)), false);
-            FunctionRegistry.RegisterFunction("atan", (Func<double, double>)((a) => Math.Atan(a)), false);
-            FunctionRegistry.RegisterFunction("acot", (Func<double, double>)((a) => MathUtil.Acot(a)), false);
-            FunctionRegistry.RegisterFunction("loge", (Func<double, double>)((a) => Math.Log(a)), false);
-            FunctionRegistry.RegisterFunction("log10", (Func<double, double>)((a) => Math.Log10(a)), false);
-            FunctionRegistry.RegisterFunction("logn", (Func<double, double, double>)((a, b) => Math.Log(a, b)), false);
-            FunctionRegistry.RegisterFunction("sqrt", (Func<double, double>)((a) => Math.Sqrt(a)), false);
-            FunctionRegistry.RegisterFunction("abs", (Func<double, double>)((a) => Math.Abs(a)), false);
-            FunctionRegistry.RegisterFunction("max", (Func<double, double, double>)((a, b) => Math.Max(a, b)), false);
-            FunctionRegistry.RegisterFunction("min", (Func<double, double, double>)((a, b) => Math.Min(a, b)), false);
-            FunctionRegistry.RegisterFunction("if", (Func<double, double, double, double>)((a, b, c) => (a != 0.0 ? b : c)), false);
-            FunctionRegistry.RegisterFunction("ifless", (Func<double, double, double, double, double>)((a, b, c, d) => (a < b ? c : d)), false);
-            FunctionRegistry.RegisterFunction("ifmore", (Func<double, double, double, double, double>)((a, b, c, d) => (a > b ? c : d)), false);
-            FunctionRegistry.RegisterFunction("ifequal", (Func<double, double, double, double, double>)((a, b, c, d) => (a == b ? c : d)), false);
-            FunctionRegistry.RegisterFunction("ceiling", (Func<double, double>)((a) => Math.Ceiling(a)), false);
-            FunctionRegistry.RegisterFunction("floor", (Func<double, double>)((a) => Math.Floor(a)), false);
-            FunctionRegistry.RegisterFunction("truncate", (Func<double, double>)((a) => Math.Truncate(a)), false);
+            FunctionRegistry.RegisterFunction("sin", (Func<double, double>) ((a) => Math.Sin(a)), false);
+            FunctionRegistry.RegisterFunction("cos", (Func<double, double>) ((a) => Math.Cos(a)), false);
+            FunctionRegistry.RegisterFunction("csc", (Func<double, double>) ((a) => MathUtil.Csc(a)), false);
+            FunctionRegistry.RegisterFunction("sec", (Func<double, double>) ((a) => MathUtil.Sec(a)), false);
+            FunctionRegistry.RegisterFunction("asin", (Func<double, double>) ((a) => Math.Asin(a)), false);
+            FunctionRegistry.RegisterFunction("acos", (Func<double, double>) ((a) => Math.Acos(a)), false);
+            FunctionRegistry.RegisterFunction("tan", (Func<double, double>) ((a) => Math.Tan(a)), false);
+            FunctionRegistry.RegisterFunction("cot", (Func<double, double>) ((a) => MathUtil.Cot(a)), false);
+            FunctionRegistry.RegisterFunction("atan", (Func<double, double>) ((a) => Math.Atan(a)), false);
+            FunctionRegistry.RegisterFunction("acot", (Func<double, double>) ((a) => MathUtil.Acot(a)), false);
+            FunctionRegistry.RegisterFunction("loge", (Func<double, double>) ((a) => Math.Log(a)), false);
+            FunctionRegistry.RegisterFunction("log10", (Func<double, double>) ((a) => Math.Log10(a)), false);
+            FunctionRegistry.RegisterFunction("logn", (Func<double, double, double>) ((a, b) => Math.Log(a, b)), false);
+            FunctionRegistry.RegisterFunction("sqrt", (Func<double, double>) ((a) => Math.Sqrt(a)), false);
+            FunctionRegistry.RegisterFunction("abs", (Func<double, double>) ((a) => Math.Abs(a)), false);
+            FunctionRegistry.RegisterFunction("max", (Func<double, double, double>) ((a, b) => Math.Max(a, b)), false);
+            FunctionRegistry.RegisterFunction("min", (Func<double, double, double>) ((a, b) => Math.Min(a, b)), false);
+            FunctionRegistry.RegisterFunction("if",
+                (Func<double, double, double, double>) ((a, b, c) => (a != 0.0 ? b : c)), false);
+            FunctionRegistry.RegisterFunction("ifless",
+                (Func<double, double, double, double, double>) ((a, b, c, d) => (a < b ? c : d)), false);
+            FunctionRegistry.RegisterFunction("ifmore",
+                (Func<double, double, double, double, double>) ((a, b, c, d) => (a > b ? c : d)), false);
+            FunctionRegistry.RegisterFunction("ifequal",
+                (Func<double, double, double, double, double>) ((a, b, c, d) => (a == b ? c : d)), false);
+            FunctionRegistry.RegisterFunction("ceiling", (Func<double, double>) ((a) => Math.Ceiling(a)), false);
+            FunctionRegistry.RegisterFunction("floor", (Func<double, double>) ((a) => Math.Floor(a)), false);
+            FunctionRegistry.RegisterFunction("truncate", (Func<double, double>) ((a) => Math.Truncate(a)), false);
         }
 
         private void RegisterDefaultConstants()
@@ -376,7 +426,8 @@ namespace Jace
 
         private Func<IDictionary<string, double>, double> BuildFormula(string formulaText, Operation operation)
         {
-            return executionFormulaCache.GetOrAdd(formulaText, v => executor.BuildFormula(operation, this.FunctionRegistry));
+            return executionFormulaCache.GetOrAdd(formulaText,
+                v => executor.BuildFormula(operation, this.FunctionRegistry));
         }
 
         private bool IsInFormulaCache(string formulaText, out Func<IDictionary<string, double>, double> function)
@@ -395,11 +446,16 @@ namespace Jace
         {
             foreach (string variableName in variables.Keys)
             {
-                if(ConstantRegistry.IsConstantName(variableName) && !ConstantRegistry.GetConstantInfo(variableName).IsOverWritable)
-                    throw new ArgumentException(string.Format("The name \"{0}\" is a reservered variable name that cannot be overwritten.", variableName), "variables");
+                if (ConstantRegistry.IsConstantName(variableName) &&
+                    !ConstantRegistry.GetConstantInfo(variableName).IsOverWritable)
+                    throw new ArgumentException(
+                        string.Format("The name \"{0}\" is a reservered variable name that cannot be overwritten.",
+                            variableName), "variables");
 
                 if (FunctionRegistry.IsFunctionName(variableName))
-                    throw new ArgumentException(string.Format("The name \"{0}\" is a function name. Parameters cannot have this name.", variableName), "variables");
+                    throw new ArgumentException(
+                        string.Format("The name \"{0}\" is a function name. Parameters cannot have this name.",
+                            variableName), "variables");
             }
         }
     }
