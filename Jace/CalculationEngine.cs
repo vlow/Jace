@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Text;
 using Jace.Execution;
 using Jace.Operations;
 using Jace.Tokenizer;
@@ -138,8 +136,8 @@ namespace Jace
         /// Calculates the given formulas without verifications. This is faster, but leaves the responsibility to sanitize the formulas and variable names to the caller.
         /// </summary>
         /// <param name="formulaText">The formula which should be calculated. Must be lowercase.</param>
-        /// <param name="variables">The variable dictionary. Variable names must be lowercase and must not collide with the constants registered in this Calculation Engine.</param>
-        /// <returns></returns>
+        /// <param name="variables">The variable dictionary. Variable names must be lowercase and must not collide with the constants or function names registered in this CalculationEngine.</param>
+        /// <returns>The evaluated result of the formula and the variables.</returns>
         public double CalculateUnsafe(string formulaText, IDictionary<string, double> variables)
         {
             // Add the reserved variables to the dictionary
