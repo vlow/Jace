@@ -15,7 +15,7 @@ namespace Jace
     /// mathematical formulas into .NET Delegates and to calculate the result.
     /// It can be configured to run in a number of modes based on the constructor parameters choosen.
     /// </summary>
-    public class CalculationEngine
+    public class CalculationEngine : ICalculationEngine
     {
         private readonly IExecutor executor;
         private readonly Optimizer optimizer;
